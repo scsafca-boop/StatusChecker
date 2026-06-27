@@ -1,106 +1,177 @@
-`statuschecker.sh` checks a list of URLs and groups them by result: **200 (active)**, **404 (not found)**, **3xx (redirects)**, **other HTTP errors**, and **timeouts**. It also detects **soft 404s** (pages that return `200 OK` but display “not found” content), which is especially useful on social sites.
+A simple Bash tool that checks URL statuses and intelligently groups them by response type. Perfect for checking lists of social media profiles, verifying links, or auditing websites.
 
----
+**What it does**
+statuschecker.sh takes a list of URLs and organizes them into clean groups:
 
-## Features
+200 (Active) – Working pages
+404 (Not Found) – Dead links
+3xx (Redirects) – Pages that redirect somewhere else
+Other errors – Server errors, forbidden pages, etc.
+Timeouts – URLs that couldn't be reached
+Inactive (Soft 404s) – Pages that return 200 OK but actually show "not found" content
+The last one is particularly helpful when checking social media profiles—many platforms return a successful status code even when a profile doesn't exist.
 
-- Read URLs from a file (**one URL per line**)
-- Group results by:
-  - `200` Active
-  - `404` Not Found
-  - `3xx` Redirected (any `300–399`)
-  - Other HTTP status codes (e.g., `500`, `403`, etc.)
-  - `timeout` (failed connections / timeouts)
-  - `inactive` (soft 404s: `200` with “not found” indicators)
-- Optional filtering: output only specific groups (e.g., only `200` and `404`)
-- Write results to a file or print to console only
+Requirements
+Bash (works on Linux, macOS, or WSL on Windows)
+curl (usually pre-installed)
+Basic Unix tools (grep, awk)
+Most systems already have everything you need. To check if curl is installed:
 
----
+Bash
 
-## Requirements
+curl --version
+If it's missing, install it:
 
-- Bash (Linux/macOS, or WSL on Windows)
-- Common CLI tools typically available on Unix systems  
-  (exact dependencies depend on implementation—commonly `curl`, `grep`, `awk`, etc.)
+Ubuntu/Debian:
 
----
+Bash
 
-## Installation
+sudo apt update && sudo apt install curl
+macOS:
 
-Clone the repo and make the script executable:
+Bash
 
-```bash
-git clone StatusChecker.git
+brew install curl
+Windows (WSL):
+
+Bash
+
+sudo apt update && sudo apt install curl
+Installation
+1. Clone the repository:
+
+Bash
+
+git clone https://github.com/s0deq/StatusChecker.git
 cd StatusChecker
+2. Make the script executable:
+
+Bash
+
 chmod +x statuschecker.sh
-Usage
-bash statuschecker.sh [OPTIONS] <input_file> [output_file]
-Arguments
-input_file (required)
-File containing one URL per line.
+3. You're ready to go!
 
-output_file (optional)
-Where to save grouped results.
+How to use
+Basic usage
+Bash
 
-Default: Result.txt
-Use - to print only to console (no file written)
-Options
--h, --help
-Show help and exit
+./statuschecker.sh urls.txt
+This reads URLs from urls.txt and saves grouped results to Result.txt.
 
---version
-Show version and exit
+Custom output file
+Bash
 
--f, --filter CODES
-Filter groups by status codes (comma-separated).
+./statuschecker.sh urls.txt my-results.txt
+Print to console only (no file)
+Bash
 
-Supported values:
+./statuschecker.sh urls.txt -
+Filter specific groups
+Want to see only active links and 404s?
 
-200 → Active
-404 → Not found
-3xx → Redirected (any 300–399)
-Any other number (e.g., 500) → Only that HTTP status code
-timeout → Timeouts / failed connections
-inactive → Soft 404s (HTTP 200 with “not found” content)
-Examples
-Run using default output file (Result.txt):
+Bash
 
-bash statuschecker.sh urls.txt
-Filter output to only 200 and 404, writing to a custom file:
+./statuschecker.sh --filter 200,404 urls.txt
+Filter options:
 
-bash statuschecker.sh --filter 200,404 input.txt Result-200-404.txt
-Show only timeouts and print to console (no file):
+200 – Active pages
+404 – Not found
+3xx – Redirects
+500 – Server errors (or any other status code)
+timeout – Connection failures
+inactive – Soft 404s
+Show help
+Bash
 
-bash statuschecker.sh links.txt --filter timeout -
-Show help:
+./statuschecker.sh --help
+Input file format
+Create a text file with one URL per line:
 
-bash statuschecker.sh --help
-Input File Format
-Example urls.txt:
-https://example.com
-https://example.com/does-not-exist
-https://github.com
-Output
-The script groups URLs into labeled sections based on the final classification (active, not found, redirects, errors, timeout, inactive). If --filter is used, only the requested groups are included in the output.
+urls.txt:
 
-Notes on Soft 404 Detection
-Some platforms return 200 OK even when a page/profile doesn’t exist and show a “not found” message in the HTML. This script attempts to detect those cases and classifies them as:
+text
 
-inactive (soft 404)
-The exact matching rules depend on the script’s implementation (keywords/patterns).
+https://twitter.com/elonmusk
+https://twitter.com/thisuserdoesnotexist123
+https://github.com/torvalds
+https://example.com/dead-link
+No commas, no quotes—just plain URLs.
+
+Example output
+text
+
+=== Active (200) ===
+https://github.com/torvalds
+
+=== Not Found (404) ===
+https://example.com/dead-link
+
+=== Inactive (Soft 404) ===
+https://twitter.com/thisuserdoesnotexist123
+
+=== Timeouts ===
+https://unreachable-site.example
+Understanding Soft 404s
+Some websites (especially social platforms) return 200 OK even when content doesn't exist. They show a "user not found" page instead of a proper 404 error.
+
+StatusChecker detects these by looking for common "not found" phrases in the HTML response. This helps you identify truly active profiles versus fake positives.
 
 Troubleshooting
-“Permission denied”: run chmod +x statuschecker.sh
-All URLs show timeout: check network/DNS access, proxy/VPN, or firewall rules
-Unexpected classifications: soft-404 detection may need tuning for your target sites
+"Permission denied" error:
+
+Bash
+
+chmod +x statuschecker.sh
+All URLs showing as timeout:
+
+Check your internet connection
+Disable VPN/proxy temporarily
+Some URLs might be blocking automated requests
+Soft 404 detection seems off:
+
+The script uses pattern matching—some sites may need custom tuning
+Feel free to open an issue with examples!
+Complete command reference
+Bash
+
+./statuschecker.sh [OPTIONS] <input_file> [output_file]
+Options:
+
+Flag	Description
+-h, --help	Show help message
+--version	Show version
+-f, --filter CODES	Show only specific groups (comma-separated)
+Examples:
+
+Bash
+
+# Basic check
+./statuschecker.sh links.txt
+
+# Custom output
+./statuschecker.sh links.txt results.txt
+
+# Only show working links
+./statuschecker.sh --filter 200 links.txt
+
+# Show errors and timeouts
+./statuschecker.sh --filter 404,timeout,500 links.txt
+
+# Print to console
+./statuschecker.sh links.txt -
 Contributing
-PRs and issues are welcome:
+Found a bug? Have an idea? Contributions are welcome!
 
-improvements to grouping/formatting
-better soft-404 detection patterns
-performance improvements (parallelism, retries)
-compatibility fixes across platforms
+Areas where you can help:
+
+Improving soft 404 detection patterns
+Adding parallel processing for faster checks
+Better error handling
+Supporting more platforms
+Just fork the repo, make your changes, and submit a pull request.
+
 License
-Add your license here (e.g., MIT). If you don’t have one yet, create a LICENSE file and reference it here.
+(Add your license here—e.g., MIT License. Create a LICENSE file in your repo if you haven't already.)
 
-
+Questions?
+Open an issue on GitHub and I'll help you out!
